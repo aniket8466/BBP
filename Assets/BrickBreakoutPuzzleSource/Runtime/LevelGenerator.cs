@@ -63,8 +63,8 @@ public sealed class LevelGenerator : MonoBehaviour
 
     private BrickBlock[,] blocks;
     private Transform levelRoot;
-    private Camera gameCamera;
-    private CameraHandler cameraHandler;
+    [SerializeField] private Camera gameCamera;
+    [SerializeField] private CameraHandler cameraHandler;
     private LifeManager lifeManager;
     private HintManager hintManager;
     private Material arrowMaterial;
@@ -95,16 +95,6 @@ public sealed class LevelGenerator : MonoBehaviour
 
     private void Start()
     {
-        gameCamera = Camera.main != null ? Camera.main : FindObjectOfType<Camera>();
-        if (gameCamera == null) { Debug.LogError("LevelGenerator needs a camera in the scene.", this); enabled = false; return; }
-        cameraHandler = gameCamera.GetComponent<CameraHandler>();
-        if (cameraHandler == null)
-        {
-            Debug.LogError("The scene camera needs a CameraHandler component.", gameCamera);
-            enabled = false;
-            return;
-        }
-
         arrowMaterial = NewMaterial(Color.white, true);
         Color[] colors = blockColors != null && blockColors.Length > 0 ? blockColors : new[] { Color.white };
         blockMaterials = new Material[colors.Length];
@@ -303,19 +293,16 @@ public sealed class LevelGenerator : MonoBehaviour
             if (rows[row][x] != '#') continue;
             int y = height - 1 - row;
             Vector3 position = origin + new Vector3(x * boardCellSize, y * boardCellSize, 0f);
-            GameObject cube = blockPrefab != null
-                ? Instantiate(blockPrefab, position, Quaternion.identity, levelRoot)
-                : GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject cube = Instantiate(blockPrefab, position, Quaternion.identity, levelRoot);
             cube.name = "Arrow Block " + x + " " + y;
             if (cube.transform.parent != levelRoot) cube.transform.SetParent(levelRoot, true);
             float cubeSize = boardCellSize - blockGap;
             cube.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize * .75f);
             cube.transform.position = position;
             Renderer cubeRenderer = cube.GetComponent<Renderer>();
-            if (cubeRenderer != null) cubeRenderer.sharedMaterial = blockMaterials[colorIndex % blockMaterials.Length];
+            cubeRenderer.sharedMaterial = blockMaterials[colorIndex % blockMaterials.Length];
             colorIndex++;
             BrickBlock block = cube.GetComponent<BrickBlock>();
-            if (block == null) block = cube.AddComponent<BrickBlock>();
             block.Initialize(new Vector2Int(x, y), arrowDirections[x, y], position, HandleBlockTap);
             CreateArrowIcon(block.transform, arrowDirections[x, y], cubeSize);
             block.PlaySpawnAnimation((x + y) * 0.018f);

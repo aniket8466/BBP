@@ -512,6 +512,7 @@ MonoBehaviour:
   levelScrollRect: {fileID: 211925448}
   closeButton: {fileID: 199233068}
   levelButtonPrefab: {fileID: 5197379367283980708, guid: 0cf4a0f40b6763c4589c923cf97cc3c0, type: 3}
+  levelGrid: {fileID: 1455060409}
   levelCount: 2000
 --- !u!4 &99911220
 Transform:
@@ -3460,6 +3461,7 @@ MonoBehaviour:
   settingsButton: {fileID: 1619470357}
   shopClose: {fileID: 1377138557}
   settingsClose: {fileID: 1695325117}
+  exitButton: {fileID: 802141286}
   coinPack10Button: {fileID: 132380581}
   coinPack100Button: {fileID: 970961910}
   coinPack200Button: {fileID: 1341125338}
@@ -3467,6 +3469,7 @@ MonoBehaviour:
   hintPack5Button: {fileID: 1084766268}
   hintPack10Button: {fileID: 720270525}
   coinsToggle: {fileID: 1201401310}
+  hintsToggle: {fileID: 1348138238}
   bgmToggle: {fileID: 553289085}
   sfxToggle: {fileID: 875571703}
   volumeSlider: {fileID: 449419241}

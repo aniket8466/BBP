@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -8,15 +7,43 @@ using FuncrateStudio;
 
 public class MainMenu : MonoBehaviour
 {
+    [Header("Level Selection")]
     [SerializeField] private MenuLevelManager levelMenu;
-    [SerializeField] private GameObject shopPanel, coinsList, settingsPanel;
-    [SerializeField] private Button shopButton, coinButton, settingsButton, shopClose, settingsClose;
-    [SerializeField] private Button coinPack10Button, coinPack100Button, coinPack200Button;
-    [SerializeField] private Button hintPack1Button, hintPack5Button, hintPack10Button;
-    [SerializeField] private Toggle coinsToggle, bgmToggle, sfxToggle;
-    [SerializeField] private Slider volumeSlider, sfxVolumeSlider;
-    [SerializeField] private TMP_Text coinBalanceText;
+
+    [Header("Panels")]
+    [SerializeField] private GameObject shopPanel;
+    [SerializeField] private GameObject coinsList;
+    [SerializeField] private GameObject settingsPanel;
+
+    [Header("Menu Buttons")]
+    [SerializeField] private Button shopButton;
+    [SerializeField] private Button coinButton;
+    [SerializeField] private Button settingsButton;
+    [SerializeField] private Button shopClose;
+    [SerializeField] private Button settingsClose;
+    [SerializeField] private Button exitButton;
+
+    [Header("Shop Buttons")]
+    [SerializeField] private Button coinPack10Button;
+    [SerializeField] private Button coinPack100Button;
+    [SerializeField] private Button coinPack200Button;
+    [SerializeField] private Button hintPack1Button;
+    [SerializeField] private Button hintPack5Button;
+    [SerializeField] private Button hintPack10Button;
+
+    [Header("Menu Settings")]
+    [SerializeField] private Toggle coinsToggle;
+    [SerializeField] private Toggle hintsToggle;
+
+    [Header("Audio Settings")]
+    [SerializeField] private Toggle bgmToggle;
+    [SerializeField] private Toggle sfxToggle;
+    [SerializeField] private Slider volumeSlider;
+    [SerializeField] private Slider sfxVolumeSlider;
     [SerializeField] private AudioManager audioManager;
+
+    [Header("UI Text")]
+    [SerializeField] private TMP_Text coinBalanceText;
 
     private bool coinPackInProgress;
     private int adsRewarded, adsRequired, pendingCoinReward;
@@ -30,29 +57,46 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
-        Button[] sceneButtons = FindObjectsOfType<Button>(true);
-        foreach (Button button in sceneButtons) ButtonClickSfx.Attach(button);
+        ButtonClickSfx.Attach(shopButton);
+        ButtonClickSfx.Attach(coinButton);
+        ButtonClickSfx.Attach(settingsButton);
+        ButtonClickSfx.Attach(shopClose);
+        ButtonClickSfx.Attach(settingsClose);
+        ButtonClickSfx.Attach(exitButton);
+        ButtonClickSfx.Attach(coinPack10Button);
+        ButtonClickSfx.Attach(coinPack100Button);
+        ButtonClickSfx.Attach(coinPack200Button);
+        ButtonClickSfx.Attach(hintPack1Button);
+        ButtonClickSfx.Attach(hintPack5Button);
+        ButtonClickSfx.Attach(hintPack10Button);
         AddListener(shopButton, OpenShop); AddListener(coinButton, OpenCoins); AddListener(settingsButton, OpenSettings);
         AddListener(shopClose, CloseShop); AddListener(settingsClose, CloseSettings);
+        AddListener(exitButton, QuitApplication);
         AddListener(coinPack10Button, BuyCoinPack10); AddListener(coinPack100Button, BuyCoinPack100); AddListener(coinPack200Button, BuyCoinPack200);
         AddListener(hintPack1Button, BuyHintPack1); AddListener(hintPack5Button, BuyHintPack5); AddListener(hintPack10Button, BuyHintPack10);
+        hintsToggle.SetIsOnWithoutNotify(GameManager.HintButtonEnabled);
+        hintsToggle.onValueChanged.AddListener(GameManager.SetHintButtonEnabled);
+        hintsToggle.onValueChanged.Invoke(hintsToggle.isOn);
         RefreshCoinBalance();
-        if (audioManager == null) return;
-        if (bgmToggle != null) { bgmToggle.SetIsOnWithoutNotify(audioManager.IsBGMEnabled()); bgmToggle.onValueChanged.AddListener(audioManager.SetBGMEnabled); }
-        if (sfxToggle != null) { sfxToggle.SetIsOnWithoutNotify(audioManager.IsSFXEnabled()); sfxToggle.onValueChanged.AddListener(audioManager.SetSFXEnabled); }
-        if (volumeSlider != null) { volumeSlider.SetValueWithoutNotify(audioManager.GetVolume() * 100f); volumeSlider.onValueChanged.AddListener(SetVolumePercent); }
-        if (sfxVolumeSlider != null) { sfxVolumeSlider.SetValueWithoutNotify(audioManager.GetSFXVolume() * 100f); sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumePercent); }
+        bgmToggle.SetIsOnWithoutNotify(audioManager.IsBGMEnabled()); bgmToggle.onValueChanged.AddListener(audioManager.SetBGMEnabled);
+        sfxToggle.SetIsOnWithoutNotify(audioManager.IsSFXEnabled()); sfxToggle.onValueChanged.AddListener(audioManager.SetSFXEnabled);
+        volumeSlider.SetValueWithoutNotify(audioManager.GetVolume() * 100f); volumeSlider.onValueChanged.AddListener(SetVolumePercent);
+        sfxVolumeSlider.SetValueWithoutNotify(audioManager.GetSFXVolume() * 100f); sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumePercent);
     }
 
-    private static void AddListener(Button button, UnityEngine.Events.UnityAction action) { if (button != null) button.onClick.AddListener(action); }
-    private void OpenShop() { if (shopPanel != null) shopPanel.SetActive(true); }
-    private void OpenCoins() { OpenShop(); if (coinsToggle != null) coinsToggle.isOn = true; else if (coinsList != null) coinsList.SetActive(true); }
-    private void OpenSettings() { if (settingsPanel != null) settingsPanel.SetActive(true); }
-    private void CloseShop() { if (shopPanel != null) shopPanel.SetActive(false); }
-    private void CloseSettings() { if (settingsPanel != null) settingsPanel.SetActive(false); }
-    private void SetVolumePercent(float value) { if (audioManager != null) audioManager.SetVolume(value * 0.01f); }
-    private void SetSFXVolumePercent(float value) { if (audioManager != null) audioManager.SetSFXVolume(value * 0.01f); }
-    private void RefreshCoinBalance() { if (coinBalanceText != null) coinBalanceText.text = GameManager.Coins.ToString(); }
+    private static void AddListener(Button button, UnityEngine.Events.UnityAction action) { button.onClick.AddListener(action); }
+    private void OpenShop() { shopPanel.SetActive(true); }
+    private void OpenCoins() { OpenShop(); coinsToggle.isOn = true; }
+    private void OpenSettings() { settingsPanel.SetActive(true); }
+    private void CloseShop() { shopPanel.SetActive(false); }
+    private void CloseSettings() { settingsPanel.SetActive(false); }
+    private static void QuitApplication()
+    {
+        Application.Quit();
+    }
+    private void SetVolumePercent(float value) { audioManager.SetVolume(value * 0.01f); }
+    private void SetSFXVolumePercent(float value) { audioManager.SetSFXVolume(value * 0.01f); }
+    private void RefreshCoinBalance() { coinBalanceText.text = GameManager.Coins.ToString(); }
     private void BuyHints(int amount, int cost) { if (GameManager.TrySpendCoins(cost)) GameManager.AddHints(amount); RefreshCoinBalance(); }
     private void BuyCoinPack10() { BeginCoinPack(1, 10); }
     private void BuyCoinPack100() { BeginCoinPack(2, 100); }
@@ -104,31 +148,33 @@ public class MainMenu : MonoBehaviour
 
     private void SetCoinPackButtons(bool interactable)
     {
-        if (coinPack10Button != null) coinPack10Button.interactable = interactable;
-        if (coinPack100Button != null) coinPack100Button.interactable = interactable;
-        if (coinPack200Button != null) coinPack200Button.interactable = interactable;
+        coinPack10Button.interactable = interactable;
+        coinPack100Button.interactable = interactable;
+        coinPack200Button.interactable = interactable;
     }
 
     public void LoadLevel()
     {
-        if (levelMenu != null) levelMenu.OpenLevelSelection();
-        else SceneManager.LoadScene("Level");
+        GameManager.SetHintButtonEnabled(hintsToggle.isOn);
+
+        levelMenu.OpenLevelSelection();
     }
 
     private void OnDestroy()
     {
         RemoveListener(shopButton, OpenShop); RemoveListener(coinButton, OpenCoins); RemoveListener(settingsButton, OpenSettings);
         RemoveListener(shopClose, CloseShop); RemoveListener(settingsClose, CloseSettings);
+        RemoveListener(exitButton, QuitApplication);
         RemoveListener(coinPack10Button, BuyCoinPack10); RemoveListener(coinPack100Button, BuyCoinPack100); RemoveListener(coinPack200Button, BuyCoinPack200);
         RemoveListener(hintPack1Button, BuyHintPack1); RemoveListener(hintPack5Button, BuyHintPack5); RemoveListener(hintPack10Button, BuyHintPack10);
-        if (audioManager == null) return;
-        if (bgmToggle != null) bgmToggle.onValueChanged.RemoveListener(audioManager.SetBGMEnabled);
-        if (sfxToggle != null) sfxToggle.onValueChanged.RemoveListener(audioManager.SetSFXEnabled);
-        if (volumeSlider != null) volumeSlider.onValueChanged.RemoveListener(SetVolumePercent);
-        if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.RemoveListener(SetSFXVolumePercent);
+        hintsToggle.onValueChanged.RemoveListener(GameManager.SetHintButtonEnabled);
+        bgmToggle.onValueChanged.RemoveListener(audioManager.SetBGMEnabled);
+        sfxToggle.onValueChanged.RemoveListener(audioManager.SetSFXEnabled);
+        volumeSlider.onValueChanged.RemoveListener(SetVolumePercent);
+        sfxVolumeSlider.onValueChanged.RemoveListener(SetSFXVolumePercent);
     }
 
-    private static void RemoveListener(Button button, UnityEngine.Events.UnityAction action) { if (button != null) button.onClick.RemoveListener(action); }
+    private static void RemoveListener(Button button, UnityEngine.Events.UnityAction action) { button.onClick.RemoveListener(action); }
 }
 
 

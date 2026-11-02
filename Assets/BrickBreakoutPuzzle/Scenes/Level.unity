@@ -1569,12 +1569,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panelBG: {fileID: 133658632}
+  gameplayUIRoot: {fileID: 506446685}
   levelText: {fileID: 2132514703}
   hintCountText: {fileID: 288832540}
   timerText: {fileID: 1838820690}
   lifeIconsRoot: {fileID: 965481053}
   pauseBtn: {fileID: 1977505371}
   hintBtn: {fileID: 373407293}
+  hintHolder: {fileID: 1500462381}
   panelPause: {fileID: 297908570}
   resumeBtn: {fileID: 1529281399}
   restartBtn: {fileID: 1314484935}
@@ -1593,6 +1595,8 @@ MonoBehaviour:
   levelFailedHintCountText: {fileID: 1760444584}
   levelFailedTimeText: {fileID: 1461699002}
   homeSceneName: Menu
+  levelGenerator: {fileID: 1090000002}
+  completionStarsRoot: {fileID: 811264385}
 --- !u!4 &492578092
 Transform:
   m_ObjectHideFlags: 0
@@ -3460,6 +3464,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c7e11076eccaf34c81977bd2bcf934d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameCamera: {fileID: 330585545}
+  cameraHandler: {fileID: 330585548}
   startingLevel: 1
   loadHighestUnlockedLevel: 1
   blockPrefab: {fileID: 1050929111787496, guid: 91a4fbec152b44d29a572c35ac073bc1, type: 3}
@@ -5015,7 +5021,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1500462382
 RectTransform:
   m_ObjectHideFlags: 0

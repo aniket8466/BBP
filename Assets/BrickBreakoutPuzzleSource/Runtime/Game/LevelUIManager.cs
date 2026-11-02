@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
 using System;
+using System.Collections;
 using FuncrateStudio;
 
 
@@ -11,12 +12,14 @@ public class LevelUIManager : MonoBehaviour
 {
     [Header("Level UI")]
     [SerializeField] private GameObject panelBG;
+    [SerializeField] private GameObject gameplayUIRoot;
     [SerializeField] private TMP_Text levelText;
     [SerializeField] private TMP_Text hintCountText;
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private Transform lifeIconsRoot;
     [SerializeField] private Button pauseBtn;
     [SerializeField] private Button hintBtn;
+    [SerializeField] private GameObject hintHolder;
 
     [Header("Pause UI")]
     [SerializeField] private GameObject panelPause;
@@ -26,6 +29,8 @@ public class LevelUIManager : MonoBehaviour
 
     [Header("Level Complete UI")]
     [SerializeField] private GameObject panelLevelComplete;
+    [SerializeField] private Transform completionStarsRoot;
+    [SerializeField, Min(0f)] private float levelCompletePanelDelay = 1.5f;
     [SerializeField] private Button nextLevelBtn;
     [SerializeField] private Button homeLevelCompleteBtn;
     [SerializeField] private TMP_Text levelCompleteCountText;
@@ -44,31 +49,36 @@ public class LevelUIManager : MonoBehaviour
     [Header("Navigation")]
     [SerializeField] private string homeSceneName = "Home";
 
-    private LevelGenerator levelGenerator;
+    [SerializeField] private LevelGenerator levelGenerator;
     private int displayedLives = -1;
     private int displayedHints = -1;
     private GameObject confirmationPanel;
     private bool navigationPending;
     private float timeScaleBeforeConfirmation = 1f;
     private StarSystem starSystem;
-    private Transform completionStarsRoot;
-    private GameObject gameplayUIRoot;
+
+
 
     private void Start()
     {
-        levelGenerator = FindObjectOfType<LevelGenerator>();
-        Button[] sceneButtons = FindObjectsOfType<Button>(true);
-        foreach (Button button in sceneButtons) ButtonClickSfx.Attach(button);
+        ButtonClickSfx.Attach(pauseBtn);
+        ButtonClickSfx.Attach(hintBtn);
+        ButtonClickSfx.Attach(resumeBtn);
+        ButtonClickSfx.Attach(restartBtn);
+        ButtonClickSfx.Attach(homeBtn);
+        ButtonClickSfx.Attach(restartLevelBtn);
+        ButtonClickSfx.Attach(adBtn);
+        ButtonClickSfx.Attach(homeLevelCompleteBtn);
+        ButtonClickSfx.Attach(nextLevelBtn);
+        ButtonClickSfx.Attach(homeLevelFailedBtn);
         AddListeners();
         levelGenerator.LevelLoaded += HandleLevelLoaded;
         levelGenerator.LevelCompleted += HandleLevelCompleted;
         levelGenerator.LevelFailed += HandleLevelFailed;
         panelBG.SetActive(false);
-        gameplayUIRoot = FindChild(panelBG.transform.parent, "Game")?.gameObject;
         UpdateGameplayUIVisibility();
         starSystem = GetComponent<StarSystem>();
         if (starSystem == null) starSystem = gameObject.AddComponent<StarSystem>();
-        completionStarsRoot = FindChild(panelLevelComplete.transform, "StarHolder");
         starSystem.SetStars(completionStarsRoot);
         UpdateLevelUI();
         UpdateLifeCountUI();
@@ -86,6 +96,7 @@ public class LevelUIManager : MonoBehaviour
     {
         pauseBtn.onClick.AddListener(PauseGame);
         hintBtn.onClick.AddListener(UseHint);
+        hintHolder.SetActive(GameManager.HintButtonEnabled);
         resumeBtn.onClick.AddListener(ResumeGame);
         restartBtn.onClick.AddListener(RestartLevel);
         restartLevelBtn.onClick.AddListener(RestartLevel);
@@ -331,15 +342,13 @@ public class LevelUIManager : MonoBehaviour
         UpdateResultsText(levelCompleteCountText, levelCompleteHintCountText, levelCompleteTimeText);
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlaySFX("StarBlast");
-        ShowPanel(panelLevelComplete);
+        StartCoroutine(ShowLevelCompletePanelAfterDelay());
     }
 
-    private static Transform FindChild(Transform root, string childName)
+    private IEnumerator ShowLevelCompletePanelAfterDelay()
     {
-        Transform[] children = root.GetComponentsInChildren<Transform>(true);
-        for (int i = 0; i < children.Length; i++)
-            if (children[i].name == childName) return children[i];
-        return null;
+        yield return new WaitForSecondsRealtime(levelCompletePanelDelay);
+        ShowPanel(panelLevelComplete);
     }
 
     private void HandleLevelFailed(int levelNumber)
@@ -365,15 +374,14 @@ public class LevelUIManager : MonoBehaviour
 
     private void HidePanel(GameObject panel)
     {
-        if (panel != null) panel.SetActive(false);
+        panel.SetActive(false);
     }
 
     private void UpdateGameplayUIVisibility()
     {
-        if (gameplayUIRoot == null) return;
-        bool modalOpen = (panelPause != null && panelPause.activeSelf)
-            || (panelLevelComplete != null && panelLevelComplete.activeSelf)
-            || (panelLevelFailed != null && panelLevelFailed.activeSelf)
+        bool modalOpen = panelPause.activeSelf
+            || panelLevelComplete.activeSelf
+            || panelLevelFailed.activeSelf
             || (confirmationPanel != null && confirmationPanel.activeSelf);
         gameplayUIRoot.SetActive(!modalOpen);
     }

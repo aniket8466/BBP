@@ -8,6 +8,7 @@ public sealed class GameManager : MonoBehaviour
     private const string SelectedLevelKey = "ArrowEscape.SelectedLevel";
     private const string CoinsKey = "ArrowEscape.Coins";
     private const string HintsKey = "ArrowEscape.Hints";
+    private const string HintButtonEnabledKey = "ArrowEscape.HintButtonEnabled";
     private const string LevelStarsKeyPrefix = "ArrowEscape.LevelStars.";
     private static GameManager instance;
 
@@ -15,6 +16,7 @@ public sealed class GameManager : MonoBehaviour
     public static int SelectedLevel => Mathf.Clamp(PlayerPrefs.GetInt(SelectedLevelKey, HighestUnlockedLevel), 1, HighestUnlockedLevel);
     public static int Coins => PlayerPrefs.GetInt(CoinsKey, 0);
     public static int Hints => PlayerPrefs.GetInt(HintsKey, 3);
+    public static bool HintButtonEnabled => PlayerPrefs.GetInt(HintButtonEnabledKey, 1) == 1;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void CreateBeforeSceneLoad()
@@ -53,6 +55,12 @@ public sealed class GameManager : MonoBehaviour
         PlayerPrefs.SetInt(CoinsKey, Coins - amount);
         PlayerPrefs.Save();
         return true;
+    }
+
+    public static void SetHintButtonEnabled(bool enabled)
+    {
+        PlayerPrefs.SetInt(HintButtonEnabledKey, enabled ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     public static void AddHints(int amount)
