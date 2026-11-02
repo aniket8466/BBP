@@ -32,6 +32,7 @@ public sealed class LevelGenerator : MonoBehaviour
     [Header("Lives")]
     [SerializeField, Min(1)] private int startingLives = 3;
 
+    public event Action<int> LevelLoaded;
     public event Action<int> LevelCompleted;
     public event Action<int> LevelTimerExpired;
     public event Action<int> LevelFailed;
@@ -69,6 +70,7 @@ public sealed class LevelGenerator : MonoBehaviour
     private Material arrowMaterial;
     private Material[] blockMaterials;
     private int levelIndex;
+    private static int? pendingLevelToLoad;
     private int remaining;
     private int moves;
     private float boardCellSize;
@@ -108,8 +110,11 @@ public sealed class LevelGenerator : MonoBehaviour
         blockMaterials = new Material[colors.Length];
         for (int i = 0; i < colors.Length; i++) blockMaterials[i] = NewMaterial(colors[i], false);
 
-        if (loadHighestUnlockedLevel) LoadSavedLevel();
-        else LoadLevel(startingLevel);
+        int levelToLoad = pendingLevelToLoad.HasValue
+            ? pendingLevelToLoad.Value
+            : loadHighestUnlockedLevel ? GetSavedLevelNumber() : startingLevel;
+        pendingLevelToLoad = null;
+        LoadLevel(levelToLoad);
         TapStatus = "TAP STATUS: READY";
     }
 
@@ -205,6 +210,11 @@ public sealed class LevelGenerator : MonoBehaviour
         return false;
     }
 
+    public static void SetLevelToLoad(int levelNumber)
+    {
+        pendingLevelToLoad = Mathf.Clamp(levelNumber, 1, GameManager.MaximumLevel);
+    }
+
     /// <summary>Loads a one-based level number. Layouts are generated deterministically from the level number.</summary>
     public void LoadLevel(int levelNumber)
     {
@@ -212,6 +222,7 @@ public sealed class LevelGenerator : MonoBehaviour
         GameManager.SelectLevel(safeLevel);
         levelIndex = safeLevel - 1;
         BuildLevel();
+        LevelLoaded?.Invoke(CurrentLevel);
     }
 
     /// <summary>Reloads the currently selected level without changing saved progress.</summary>

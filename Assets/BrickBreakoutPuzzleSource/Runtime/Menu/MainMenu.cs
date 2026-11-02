@@ -5,6 +5,7 @@ using TMPro;
 using System.Collections;
 using FuncrateStudio;
 
+
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private MenuLevelManager levelMenu;
@@ -129,3 +130,7 @@ public class MainMenu : MonoBehaviour
 
     private static void RemoveListener(Button button, UnityEngine.Events.UnityAction action) { if (button != null) button.onClick.RemoveListener(action); }
 }
+
+
+
+

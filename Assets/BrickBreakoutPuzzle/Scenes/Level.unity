@@ -1588,7 +1588,6 @@ MonoBehaviour:
   panelLevelFailed: {fileID: 176194615}
   restartLevelBtn: {fileID: 100202315}
   adBtn: {fileID: 529102719}
-  coinResumeBtn: {fileID: 0}
   homeLevelFailedBtn: {fileID: 938885740}
   levelFailedCountText: {fileID: 196797960}
   levelFailedHintCountText: {fileID: 1760444584}
@@ -3462,7 +3461,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startingLevel: 1
-  loadHighestUnlockedLevel: 0
+  loadHighestUnlockedLevel: 1
   blockPrefab: {fileID: 1050929111787496, guid: 91a4fbec152b44d29a572c35ac073bc1, type: 3}
   cellSize: 0.92
   blockGap: 0.06
@@ -3470,8 +3469,8 @@ MonoBehaviour:
   litMaterialTemplate: {fileID: 2100000, guid: 7c1a839d524b48e2871f81b485eace10, type: 2}
   unlitMaterialTemplate: {fileID: 2100000, guid: f20fe614460d46189c90d4f4d95b28cd, type: 2}
   useSolveTimer: 1
-  baseSolveTimeSeconds: 45
-  extraSecondsPerBlock: 2
+  baseSolveTimeSeconds: 30
+  extraSecondsPerBlock: 0
   startingLives: 3
   blockColors:
   - {r: 0.05, g: 0.72, b: 0.57, a: 1}
@@ -7043,7 +7042,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Level 1
+  m_text: LEVEL 01
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d70d41b15f7b52544848a0b474f04543, type: 2}
   m_sharedMaterial: {fileID: -2945388977229075123, guid: d70d41b15f7b52544848a0b474f04543, type: 2}

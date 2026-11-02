@@ -13,6 +13,13 @@ public sealed class MenuLevelManager : MonoBehaviour
     [SerializeField, Min(1)] private int levelCount = GameManager.MaximumLevel;
 
     private const string LevelSceneName = "Level";
+    private const int LevelsPerBatch = 100;
+    // Keep each frame's UI-instantiation work small so opening the level picker
+    // does not stall the Play button or the first visible frame of the panel.
+    private const int ButtonBatchSize = 20;
+    private bool buttonsCreated;
+    private bool isCreatingButtons;
+    private int createdLevelCount;
 
     private void Start()
     {
@@ -23,7 +30,6 @@ public sealed class MenuLevelManager : MonoBehaviour
             return;
         }
 
-        CreateLevelButtons();
         if (closeButton == null && levelScrollRect.transform.parent != null)
         {
             Button[] panelButtons = levelScrollRect.transform.parent.GetComponentsInChildren<Button>(true);
@@ -39,33 +45,49 @@ public sealed class MenuLevelManager : MonoBehaviour
             closeButton.onClick.AddListener(CloseLevelSelection);
             ButtonClickSfx.Attach(closeButton);
         }
-        StartCoroutine(ScrollToCurrentLevelAfterLayout());
     }
 
-    private void CreateLevelButtons()
+    private IEnumerator CreateLevelButtonsOverFrames()
     {
+        isCreatingButtons = true;
+
+        // Let Unity render the opened panel before creating the level list.
+        yield return null;
+
         for (int i = levelButtonsRoot.childCount - 1; i >= 0; i--)
             Destroy(levelButtonsRoot.GetChild(i).gameObject);
 
         int highestUnlocked = GameManager.HighestUnlockedLevel;
-        for (int level = 1; level <= Mathf.Clamp(levelCount, 1, GameManager.MaximumLevel); level++)
+        int maxLevelCount = Mathf.Clamp(levelCount, 1, GameManager.MaximumLevel);
+        int batchLimit = Mathf.CeilToInt(highestUnlocked / (float)LevelsPerBatch) * LevelsPerBatch;
+        int totalLevels = Mathf.Min(maxLevelCount, batchLimit);
+        for (int level = 1; level <= totalLevels; level++)
         {
             bool unlocked = level <= highestUnlocked;
             GameObject buttonObject = Instantiate(levelButtonPrefab, levelButtonsRoot, false);
-            buttonObject.name = $"Level {level:0000}";
+            buttonObject.name = $"LEVEL {level:00}";
             Button button = buttonObject.GetComponent<Button>();
             ButtonClickSfx.Attach(button);
             button.interactable = unlocked;
             int selectedLevel = level;
             if (unlocked) button.onClick.AddListener(() => ChooseLevel(selectedLevel));
             TMP_Text label = buttonObject.GetComponentInChildren<TMP_Text>(true);
-            if (label != null) label.text = $"LEVEL {level:0000}";
+            if (label != null) label.text = $"LEVEL {level:00}";
             UpdateButtonStars(buttonObject.transform, GameManager.GetLevelStars(level));
+
+            if (level % ButtonBatchSize == 0)
+                yield return null;
         }
 
         Canvas.ForceUpdateCanvases();
         RectTransform contentRect = levelButtonsRoot as RectTransform;
-        LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+        if (contentRect != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+
+        buttonsCreated = true;
+        createdLevelCount = totalLevels;
+        isCreatingButtons = false;
+        StartCoroutine(ScrollToCurrentLevelAfterLayout());
     }
 
     private static void UpdateButtonStars(Transform buttonRoot, int earnedStars)
@@ -98,11 +120,15 @@ public sealed class MenuLevelManager : MonoBehaviour
     private void ChooseLevel(int level)
     {
         if (!GameManager.IsLevelUnlocked(level)) return;
-        GameManager.SelectLevel(level);
-        if (Application.CanStreamedLevelBeLoaded(LevelSceneName))
-            SceneManager.LoadScene(LevelSceneName);
-        else
+        if (!Application.CanStreamedLevelBeLoaded(LevelSceneName))
+        {
             Debug.LogWarning($"Level scene '{LevelSceneName}' is not available in the build settings.", this);
+            return;
+        }
+
+        GameManager.SelectLevel(level);
+        LevelGenerator.SetLevelToLoad(level);
+        SceneManager.LoadScene(LevelSceneName);
     }
 
     public void OpenLevelSelection()
@@ -110,7 +136,11 @@ public sealed class MenuLevelManager : MonoBehaviour
         if (levelScrollRect == null) return;
         Transform panel = levelScrollRect.transform.parent;
         if (panel != null) panel.gameObject.SetActive(true);
-        StartCoroutine(ScrollToCurrentLevelAfterLayout());
+
+        if (buttonsCreated)
+            StartCoroutine(ScrollToCurrentLevelAfterLayout());
+        else if (!isCreatingButtons)
+            StartCoroutine(CreateLevelButtonsOverFrames());
     }
 
     private void CloseLevelSelection()
@@ -140,7 +170,8 @@ public sealed class MenuLevelManager : MonoBehaviour
             : Mathf.Max(1, Mathf.FloorToInt((contentRect.rect.width + (grid != null ? grid.spacing.x : 0f)) /
                 ((grid != null ? grid.cellSize.x + grid.spacing.x : contentRect.rect.width))));
         int currentRow = (GameManager.SelectedLevel - 1) / columns;
-        int totalRows = Mathf.CeilToInt((float)levelCount / columns);
+        int totalLevels = createdLevelCount;
+        int totalRows = Mathf.CeilToInt((float)totalLevels / columns);
         float contentHeight = contentRect.rect.height;
         float maxScroll = Mathf.Max(0f, contentHeight - viewportRect.rect.height);
         if (grid != null)

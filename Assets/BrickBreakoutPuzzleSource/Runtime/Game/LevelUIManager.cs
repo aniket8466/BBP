@@ -6,6 +6,7 @@ using DG.Tweening;
 using System;
 using FuncrateStudio;
 
+
 public class LevelUIManager : MonoBehaviour
 {
     [Header("Level UI")]
@@ -59,6 +60,7 @@ public class LevelUIManager : MonoBehaviour
         Button[] sceneButtons = FindObjectsOfType<Button>(true);
         foreach (Button button in sceneButtons) ButtonClickSfx.Attach(button);
         AddListeners();
+        levelGenerator.LevelLoaded += HandleLevelLoaded;
         levelGenerator.LevelCompleted += HandleLevelCompleted;
         levelGenerator.LevelFailed += HandleLevelFailed;
         panelBG.SetActive(false);
@@ -116,9 +118,14 @@ public class LevelUIManager : MonoBehaviour
         UpdateLifeCountUI();
     }
 
+    private void HandleLevelLoaded(int levelNumber)
+    {
+        UpdateLevelUI();
+    }
+
     private void UpdateLevelUI()
     {
-        levelText.text = $"Level {levelGenerator.CurrentLevel:00}";
+        levelText.text = $"LEVEL {levelGenerator.CurrentLevel:00}";
     }
 
     private void PauseGame()
@@ -344,9 +351,9 @@ public class LevelUIManager : MonoBehaviour
 
     private void UpdateResultsText(TMP_Text countText, TMP_Text hintsText, TMP_Text timeText)
     {
-        countText.text = $"Level: {levelGenerator.CurrentLevel:00}";
+        countText.text = $"LEVEL {levelGenerator.CurrentLevel:00}";
         hintsText.text = $"Hints: {GameManager.Hints}";
-        timeText.text = $"Time: {FormatTime(levelGenerator.ElapsedTimeSeconds)}";
+        timeText.text = $"Time: {FormatTime(levelGenerator.TimeRemainingSeconds)}";
     }
 
     private void ShowPanel(GameObject panel)
@@ -389,8 +396,13 @@ public class LevelUIManager : MonoBehaviour
     private void OnDestroy()
     {
         RemoveListeners();
+        levelGenerator.LevelLoaded -= HandleLevelLoaded;
         levelGenerator.LevelCompleted -= HandleLevelCompleted;
         levelGenerator.LevelFailed -= HandleLevelFailed;
         Time.timeScale = 1f;
     }
 }
+
+
+
+
