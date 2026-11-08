@@ -29,6 +29,23 @@ public sealed class StarSystem : MonoBehaviour
         presentation = StartCoroutine(PresentStarsRoutine(Mathf.Clamp(starCount, 0, 3)));
     }
 
+    public void HideStars()
+    {
+        if (presentation != null)
+        {
+            StopCoroutine(presentation);
+            presentation = null;
+        }
+
+        if (stars == null) return;
+        foreach (GameObject star in stars)
+        {
+            if (star == null) continue;
+            star.transform.DOKill();
+            star.SetActive(false);
+        }
+    }
+
     private IEnumerator PresentStarsRoutine(int starCount)
     {
         int count = Mathf.Min(3, stars.Length);

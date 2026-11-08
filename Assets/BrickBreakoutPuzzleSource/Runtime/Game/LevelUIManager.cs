@@ -17,6 +17,7 @@ public class LevelUIManager : MonoBehaviour
     [SerializeField] private TMP_Text hintCountText;
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private Transform lifeIconsRoot;
+    [SerializeField] private Transform lifeLostEffectsRoot;
     [SerializeField] private Button pauseBtn;
     [SerializeField] private Button hintBtn;
     [SerializeField] private GameObject hintHolder;
@@ -31,6 +32,7 @@ public class LevelUIManager : MonoBehaviour
     [SerializeField] private GameObject panelLevelComplete;
     [SerializeField] private Transform completionStarsRoot;
     [SerializeField, Min(0f)] private float levelCompletePanelDelay = 1.5f;
+    [SerializeField, Min(0f)] private float retryPanelDelay = 0.5f;
     [SerializeField] private Button nextLevelBtn;
     [SerializeField] private Button homeLevelCompleteBtn;
     [SerializeField] private TMP_Text levelCompleteCountText;
@@ -56,6 +58,12 @@ public class LevelUIManager : MonoBehaviour
     private bool navigationPending;
     private float timeScaleBeforeConfirmation = 1f;
     private StarSystem starSystem;
+    private UIAnimations uiAnimations;
+    private int completionStarsEarned;
+    private int lastCountdownSecond = -1;
+    private int lastTimerFormattedSecond = -1;
+    private Vector3 timerTextInitialScale;
+    private string lastTimerDisplayText;
 
 
 
@@ -80,6 +88,8 @@ public class LevelUIManager : MonoBehaviour
         starSystem = GetComponent<StarSystem>();
         if (starSystem == null) starSystem = gameObject.AddComponent<StarSystem>();
         starSystem.SetStars(completionStarsRoot);
+        uiAnimations = UIAnimations.Instance;
+        timerTextInitialScale = timerText.transform.localScale;
         UpdateLevelUI();
         UpdateLifeCountUI();
         UpdateHintCountUI();
@@ -143,18 +153,37 @@ public class LevelUIManager : MonoBehaviour
     {
         if (levelGenerator.IsLevelComplete || levelGenerator.IsTimerExpired || levelGenerator.IsOutOfLives) return;
         Time.timeScale = 0f;
-        ShowPanel(panelPause);
+        ShowPanel(panelPause, "Pause");
     }
 
     private void ResumeGame()
     {
-        HidePanel(panelPause);
+        if (uiAnimations != null)
+            uiAnimations.HideSection("Pause", FinishResume);
+        else
+            FinishResume();
+    }
+
+    private void FinishResume()
+    {
+        panelPause.SetActive(false);
         panelBG.SetActive(false);
         UpdateGameplayUIVisibility();
         Time.timeScale = 1f;
     }
 
     private void RestartLevel()
+    {
+        string section = panelLevelFailed.activeSelf ? "Retry" : "Pause";
+        if (uiAnimations != null)
+        {
+            uiAnimations.HideSection(section, RestartLevelAfterAnimation);
+            return;
+        }
+        RestartLevelAfterAnimation();
+    }
+
+    private void RestartLevelAfterAnimation()
     {
         Time.timeScale = 1f;
         HideAllPanels();
@@ -165,6 +194,7 @@ public class LevelUIManager : MonoBehaviour
     private void LoadNextLevel()
     {
         Time.timeScale = 1f;
+        starSystem.HideStars();
         HideAllPanels();
         levelGenerator.LoadNextLevel();
         LoadLevelData();
@@ -192,7 +222,55 @@ public class LevelUIManager : MonoBehaviour
 
     private void UpdateTimerUI()
     {
-        timerText.text = levelGenerator.TimerEnabled ? FormatTime(levelGenerator.TimeRemainingSeconds) : "--:--";
+        if (!levelGenerator.TimerEnabled)
+        {
+            lastTimerFormattedSecond = -1;
+            SetTimerDisplayText("--:--");
+            if (lastCountdownSecond != -1)
+                ResetTimerCountdownPulse();
+            return;
+        }
+
+        int secondsRemaining = Mathf.CeilToInt(levelGenerator.TimeRemainingSeconds);
+        if (lastTimerFormattedSecond != secondsRemaining)
+        {
+            lastTimerFormattedSecond = secondsRemaining;
+            SetTimerDisplayText(FormatTime(secondsRemaining));
+        }
+        if (secondsRemaining > 10)
+        {
+            if (lastCountdownSecond != -1)
+                ResetTimerCountdownPulse();
+            return;
+        }
+
+        if (secondsRemaining <= 0 || secondsRemaining == lastCountdownSecond) return;
+
+        lastCountdownSecond = secondsRemaining;
+        Transform timerTransform = timerText.transform;
+        timerTransform.DOKill();
+        timerTransform.localScale = timerTextInitialScale;
+        timerTransform.DOScale(timerTextInitialScale * 1.15f, 0.16f)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(2, LoopType.Yoyo)
+            .SetUpdate(true);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("Count");
+    }
+
+    private void ResetTimerCountdownPulse()
+    {
+        lastCountdownSecond = -1;
+        Transform timerTransform = timerText.transform;
+        timerTransform.DOKill();
+        timerTransform.localScale = timerTextInitialScale;
+    }
+
+    private void SetTimerDisplayText(string value)
+    {
+        if (lastTimerDisplayText == value) return;
+        lastTimerDisplayText = value;
+        timerText.text = value;
     }
 
     private void UpdateHintCountUI()
@@ -208,6 +286,7 @@ public class LevelUIManager : MonoBehaviour
     {
         int lives = levelGenerator.LivesRemaining;
         if (displayedLives == lives) return;
+        int previousLives = displayedLives;
         displayedLives = lives;
         int iconCount = lifeIconsRoot.childCount;
         for (int i = 0; i < iconCount; i++)
@@ -223,8 +302,23 @@ public class LevelUIManager : MonoBehaviour
             }
             else if (icon.gameObject.activeSelf)
             {
-                icon.DOScale(Vector3.zero, 0.18f).SetUpdate(true).OnComplete(() => icon.gameObject.SetActive(false));
+                if (previousLives >= 0 && lives < previousLives)
+                    PlayLifeLostEffect(i);
+                icon.DOKill();
+                icon.gameObject.SetActive(false);
             }
+        }
+    }
+
+    private void PlayLifeLostEffect(int heartIndex)
+    {
+        if (lifeLostEffectsRoot == null || heartIndex < 0 || heartIndex >= lifeLostEffectsRoot.childCount) return;
+
+        ParticleSystem[] particleSystems = lifeLostEffectsRoot.GetChild(heartIndex).GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particleSystem in particleSystems)
+        {
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Play(true);
         }
     }
 
@@ -236,6 +330,19 @@ public class LevelUIManager : MonoBehaviour
 
     private void ResumeWithCoinsOrAd()
     {
+        if (levelGenerator.IsTimerExpired)
+        {
+            if (GameManager.Coins >= 50)
+            {
+                GameManager.TrySpendCoins(50);
+                GrantResumeTime();
+                return;
+            }
+
+            ShowRewardedAd(GrantResumeTime);
+            return;
+        }
+
         if (!levelGenerator.IsOutOfLives) return;
         if (GameManager.Coins >= 50)
         {
@@ -251,7 +358,25 @@ public class LevelUIManager : MonoBehaviour
     {
         if (!levelGenerator.IsOutOfLives) return;
         levelGenerator.GrantResumeLife();
-        HidePanel(panelLevelFailed);
+        if (uiAnimations != null)
+            uiAnimations.HideSection("Retry", FinishResumeAfterLife);
+        else
+            FinishResumeAfterLife();
+    }
+
+    private void GrantResumeTime()
+    {
+        if (!levelGenerator.IsTimerExpired) return;
+        levelGenerator.GrantResumeTime(10f);
+        if (uiAnimations != null)
+            uiAnimations.HideSection("Retry", FinishResumeAfterLife);
+        else
+            FinishResumeAfterLife();
+    }
+
+    private void FinishResumeAfterLife()
+    {
+        panelLevelFailed.SetActive(false);
         panelBG.SetActive(false);
         UpdateGameplayUIVisibility();
         Time.timeScale = 1f;
@@ -336,26 +461,31 @@ public class LevelUIManager : MonoBehaviour
 
     private void HandleLevelCompleted(int levelNumber)
     {
-        int starsEarned = Mathf.Clamp(levelGenerator.LivesRemaining, 0, 3);
-        GameManager.AwardCoinsForLevelStars(levelNumber, starsEarned);
-        starSystem.PresentStars(starsEarned);
+        completionStarsEarned = Mathf.Clamp(levelGenerator.LivesRemaining, 0, 3);
+        GameManager.AwardCoinsForLevelStars(levelNumber, completionStarsEarned);
         UpdateResultsText(levelCompleteCountText, levelCompleteHintCountText, levelCompleteTimeText);
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlaySFX("StarBlast");
         StartCoroutine(ShowLevelCompletePanelAfterDelay());
     }
 
     private IEnumerator ShowLevelCompletePanelAfterDelay()
     {
         yield return new WaitForSecondsRealtime(levelCompletePanelDelay);
-        ShowPanel(panelLevelComplete);
+        ShowPanel(panelLevelComplete, "Complete", () => starSystem.PresentStars(completionStarsEarned));
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("StarBlast");
     }
 
     private void HandleLevelFailed(int levelNumber)
     {
         UpdateResultsText(levelFailedCountText, levelFailedHintCountText, levelFailedTimeText);
-        adBtn.interactable = levelGenerator.IsOutOfLives;
-        ShowPanel(panelLevelFailed);
+        adBtn.interactable = levelGenerator.IsOutOfLives || levelGenerator.IsTimerExpired;
+        StartCoroutine(ShowRetryPanelAfterDelay());
+    }
+
+    private IEnumerator ShowRetryPanelAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(retryPanelDelay);
+        ShowPanel(panelLevelFailed, "Retry");
     }
 
     private void UpdateResultsText(TMP_Text countText, TMP_Text hintsText, TMP_Text timeText)
@@ -365,16 +495,15 @@ public class LevelUIManager : MonoBehaviour
         timeText.text = $"Time: {FormatTime(levelGenerator.TimeRemainingSeconds)}";
     }
 
-    private void ShowPanel(GameObject panel)
+    private void ShowPanel(GameObject panel, string animationSection = null, UnityEngine.Events.UnityAction onAppearCompleted = null)
     {
         panelBG.SetActive(true);
         panel.SetActive(true);
         UpdateGameplayUIVisibility();
-    }
-
-    private void HidePanel(GameObject panel)
-    {
-        panel.SetActive(false);
+        if (!string.IsNullOrEmpty(animationSection) && uiAnimations != null)
+            uiAnimations.PlayAnimation(animationSection, onAppearCompleted);
+        else
+            onAppearCompleted?.Invoke();
     }
 
     private void UpdateGameplayUIVisibility()
@@ -384,6 +513,7 @@ public class LevelUIManager : MonoBehaviour
             || panelLevelFailed.activeSelf
             || (confirmationPanel != null && confirmationPanel.activeSelf);
         gameplayUIRoot.SetActive(!modalOpen);
+        levelGenerator.SetPuzzleVisible(!modalOpen);
     }
 
     private void HideAllPanels()

@@ -63,6 +63,7 @@ public sealed class LevelGenerator : MonoBehaviour
 
     private BrickBlock[,] blocks;
     private Transform levelRoot;
+    private bool puzzleVisible = true;
     [SerializeField] private Camera gameCamera;
     [SerializeField] private CameraHandler cameraHandler;
     private LifeManager lifeManager;
@@ -258,6 +259,15 @@ public sealed class LevelGenerator : MonoBehaviour
         TapStatus = "RESUMED WITH ONE LIFE";
     }
 
+    public void GrantResumeTime(float extraSeconds)
+    {
+        if (!timerExpired || completed || IsOutOfLives || extraSeconds <= 0f) return;
+        TimeRemainingSeconds = extraSeconds;
+        timerExpired = false;
+        failureNotified = false;
+        TapStatus = $"RESUMED WITH {Mathf.CeilToInt(extraSeconds)} SECONDS";
+    }
+
     /// <summary>Marks this level complete and notifies listeners such as a UI or progression manager.</summary>
     public void CompleteLevel()
     {
@@ -283,6 +293,7 @@ public sealed class LevelGenerator : MonoBehaviour
         lifeManager.ResetLives(startingLives);
         hintManager.ResetForLevel();
         levelRoot = new GameObject("Arrow Puzzle Level " + CurrentLevel).transform;
+        levelRoot.gameObject.SetActive(puzzleVisible);
 
         Vector3 origin = new Vector3(-(width - 1) * boardCellSize * .5f, -(height - 1) * boardCellSize * .5f, 0f);
         int colorIndex = 0;
@@ -312,6 +323,13 @@ public sealed class LevelGenerator : MonoBehaviour
 
         TimeLimitSeconds = useSolveTimer ? baseSolveTimeSeconds + remaining * extraSecondsPerBlock : 0f;
         TimeRemainingSeconds = TimeLimitSeconds;
+    }
+
+    public void SetPuzzleVisible(bool visible)
+    {
+        puzzleVisible = visible;
+        if (levelRoot != null)
+            levelRoot.gameObject.SetActive(visible);
     }
 
     /// <summary>Procedural boards grow from 4x4 to 16x16, becoming denser while remaining seed-reproducible.</summary>

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using FuncrateStudio;
+using System.Reflection;
 
 
 public class MainMenu : MonoBehaviour
@@ -22,6 +23,8 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private Button shopClose;
     [SerializeField] private Button settingsClose;
     [SerializeField] private Button exitButton;
+
+    [SerializeField] private Animator menuAnimator;
 
     [Header("Shop Buttons")]
     [SerializeField] private Button coinPack10Button;
@@ -82,6 +85,8 @@ public class MainMenu : MonoBehaviour
         sfxToggle.SetIsOnWithoutNotify(audioManager.IsSFXEnabled()); sfxToggle.onValueChanged.AddListener(audioManager.SetSFXEnabled);
         volumeSlider.SetValueWithoutNotify(audioManager.GetVolume() * 100f); volumeSlider.onValueChanged.AddListener(SetVolumePercent);
         sfxVolumeSlider.SetValueWithoutNotify(audioManager.GetSFXVolume() * 100f); sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumePercent);
+
+        if (UIAnimations.Instance != null) { UIAnimations.Instance.PlayAnimation("Intro", () => { menuAnimator.enabled = true; }); }
     }
 
     private static void AddListener(Button button, UnityEngine.Events.UnityAction action) { button.onClick.AddListener(action); }
