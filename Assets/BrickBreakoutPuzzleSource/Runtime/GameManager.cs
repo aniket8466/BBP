@@ -14,7 +14,7 @@ public sealed class GameManager : MonoBehaviour
 
     public static int HighestUnlockedLevel => Mathf.Clamp(PlayerPrefs.GetInt(HighestUnlockedKey, 1), 1, MaximumLevel);
     public static int SelectedLevel => Mathf.Clamp(PlayerPrefs.GetInt(SelectedLevelKey, HighestUnlockedLevel), 1, HighestUnlockedLevel);
-    public static int Coins => PlayerPrefs.GetInt(CoinsKey, 0);
+    public static int Coins => PlayerPrefs.GetInt(CoinsKey, 50);
     public static int Hints => PlayerPrefs.GetInt(HintsKey, 3);
     public static bool HintButtonEnabled => PlayerPrefs.GetInt(HintButtonEnabledKey, 1) == 1;
 

@@ -425,7 +425,7 @@ TextureImporter:
         width: 493
         height: 167
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -433,6 +433,27 @@ TextureImporter:
       bones: []
       spriteID: c460133854fcdf44287d5e575318fcca
       internalID: 2114863761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ShopUI_9
+      rect:
+        serializedVersion: 2
+        x: 807
+        y: 802
+        width: 350
+        height: 166
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ae586dab7b7d64549ad4c5ed619fc452
+      internalID: 1201559317
       vertices: []
       indices: 
       edges: []

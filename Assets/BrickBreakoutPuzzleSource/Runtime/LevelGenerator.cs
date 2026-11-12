@@ -54,7 +54,8 @@ public sealed class LevelGenerator : MonoBehaviour
     public string TapStatus { get; private set; } = "TAP STATUS: WAITING";
 
     [Header("Block Colors")]
-    [SerializeField] private Color[] blockColors =
+    [SerializeField]
+    private Color[] blockColors =
     {
         new Color(.05f, .72f, .57f), new Color(.96f, .24f, .19f), new Color(.98f, .66f, .08f),
         new Color(.14f, .43f, .95f), new Color(.65f, .22f, .91f), new Color(.96f, .20f, .58f), new Color(.03f, .72f, .83f)
@@ -80,7 +81,7 @@ public sealed class LevelGenerator : MonoBehaviour
     private bool failureNotified;
     private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>(4);
 
-    private void Awake()
+    private void Awake() // Initializes managers and runtime settings
     {
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = Mathf.Min(
@@ -94,7 +95,7 @@ public sealed class LevelGenerator : MonoBehaviour
         hintManager.ResetForLevel();
     }
 
-    private void Start()
+    private void Start() // Creates materials and loads the starting level
     {
         arrowMaterial = NewMaterial(Color.white, true);
         Color[] colors = blockColors != null && blockColors.Length > 0 ? blockColors : new[] { Color.white };
@@ -109,7 +110,7 @@ public sealed class LevelGenerator : MonoBehaviour
         TapStatus = "TAP STATUS: READY";
     }
 
-    private void Update()
+    private void Update() // Updates the timer and reads player input
     {
         if (completed || timerExpired || IsOutOfLives || Time.timeScale <= 0f) return;
         ElapsedTimeSeconds += Time.deltaTime;
@@ -145,7 +146,7 @@ public sealed class LevelGenerator : MonoBehaviour
 
     }
 
-    private void HandleScreenTap(Vector2 screenPosition)
+    private void HandleScreenTap(Vector2 screenPosition) // Processes a screen tap on a block
     {
         TapStatus = $"TOUCH READ {screenPosition.x:0},{screenPosition.y:0}";
         if (IsPointerOverInteractiveUI(screenPosition)) { TapStatus = "UI TAP"; return; }
@@ -161,14 +162,14 @@ public sealed class LevelGenerator : MonoBehaviour
         TapStatus = "RAY MISS: NO BLOCK HIT";
     }
 
-    private void HandleBlockTap(BrickBlock block)
+    private void HandleBlockTap(BrickBlock block) // Handles a tap on a block
     {
         if (block == null || block.IsMovingOut || IsOutOfLives || timerExpired || completed) return;
         TapStatus = "BLOCK TAP: " + block.name;
         TryRemove(block);
     }
 
-    private bool IsPointerOverInteractiveUI(Vector2 position)
+    private bool IsPointerOverInteractiveUI(Vector2 position) // Checks whether a tap targets interactive UI
     {
         EventSystem eventSystem = EventSystem.current;
         if (eventSystem == null) return false;
@@ -201,15 +202,15 @@ public sealed class LevelGenerator : MonoBehaviour
         return false;
     }
 
-    public static void SetLevelToLoad(int levelNumber)
+    public static void SetLevelToLoad(int levelNumber) // Sets the level to load before startup
     {
-        pendingLevelToLoad = Mathf.Clamp(levelNumber, 1, GameManager.MaximumLevel);
+        pendingLevelToLoad = Mathf.Max(1, levelNumber);
     }
 
     /// <summary>Loads a one-based level number. Layouts are generated deterministically from the level number.</summary>
-    public void LoadLevel(int levelNumber)
+    public void LoadLevel(int levelNumber) // Loads the requested level
     {
-        int safeLevel = Mathf.Clamp(levelNumber, 1, GameManager.MaximumLevel);
+        int safeLevel = Mathf.Max(1, levelNumber);
         GameManager.SelectLevel(safeLevel);
         levelIndex = safeLevel - 1;
         BuildLevel();
@@ -217,32 +218,32 @@ public sealed class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>Reloads the currently selected level without changing saved progress.</summary>
-    public void ReloadLevel() => BuildLevel();
+    public void ReloadLevel() => BuildLevel(); // Rebuilds the current level
 
     /// <summary>Saves the current level, or unlocks the following level after completion.</summary>
-    public void SaveLevelProgress()
+    public void SaveLevelProgress() // Saves progress and unlocks the next level after completion
     {
-        int levelToSave = completed ? Mathf.Min(GameManager.MaximumLevel, CurrentLevel + 1) : CurrentLevel;
+        int levelToSave = completed && CurrentLevel < int.MaxValue ? CurrentLevel + 1 : CurrentLevel;
         GameManager.SaveHighestUnlockedLevel(levelToSave);
     }
 
     /// <summary>Returns the saved highest unlocked level, falling back to the configured starting level.</summary>
-    public int GetSavedLevelNumber() => Mathf.Clamp(GameManager.SelectedLevel, startingLevel, GameManager.MaximumLevel);
+    public int GetSavedLevelNumber() => Mathf.Max(startingLevel, GameManager.SelectedLevel); // Returns the saved level, or the configured starting level
 
     /// <summary>Loads the saved highest unlocked level.</summary>
-    public void LoadSavedLevel() => LoadLevel(GetSavedLevelNumber());
+    public void LoadSavedLevel() => LoadLevel(GetSavedLevelNumber()); // Loads the saved level
 
     /// <summary>Loads the next procedural level. Call after completion from your UI/game flow.</summary>
-    public void LoadNextLevel()
+    public void LoadNextLevel() // Loads the next level
     {
-        LoadLevel(Mathf.Min(GameManager.MaximumLevel, CurrentLevel + 1));
+        if (CurrentLevel < int.MaxValue) LoadLevel(CurrentLevel + 1);
     }
 
     /// <summary>Restarts the current level and resets its timer and move count.</summary>
-    public void RestartLevel() => ReloadLevel();
+    public void RestartLevel() => ReloadLevel(); // Restarts the current level
 
     /// <summary>Highlights a block whose exit path is currently clear.</summary>
-    public void ShowHint()
+    public void ShowHint() // Highlights a block with a clear exit
     {
         if (completed || timerExpired || IsOutOfLives) return;
         if (GameManager.Hints <= 0) { TapStatus = "HINT: BUY MORE HINTS IN THE SHOP"; return; }
@@ -251,7 +252,7 @@ public sealed class LevelGenerator : MonoBehaviour
         TapStatus = "HINT: TRY THE PULSING BLOCK";
     }
 
-    public void GrantResumeLife()
+    public void GrantResumeLife() // Restores one life after a failure
     {
         if (lifeManager == null || !IsOutOfLives || completed || timerExpired) return;
         lifeManager.AddLife();
@@ -259,7 +260,7 @@ public sealed class LevelGenerator : MonoBehaviour
         TapStatus = "RESUMED WITH ONE LIFE";
     }
 
-    public void GrantResumeTime(float extraSeconds)
+    public void GrantResumeTime(float extraSeconds) // Restores the timer with extra seconds
     {
         if (!timerExpired || completed || IsOutOfLives || extraSeconds <= 0f) return;
         TimeRemainingSeconds = extraSeconds;
@@ -269,7 +270,7 @@ public sealed class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>Marks this level complete and notifies listeners such as a UI or progression manager.</summary>
-    public void CompleteLevel()
+    public void CompleteLevel() // Completes the level and notifies listeners
     {
         if (completed || timerExpired) return;
         completed = true;
@@ -277,7 +278,7 @@ public sealed class LevelGenerator : MonoBehaviour
         LevelCompleted?.Invoke(CurrentLevel);
     }
 
-    private void BuildLevel()
+    private void BuildLevel() // Creates the current level and its blocks
     {
         if (levelRoot != null) Destroy(levelRoot.gameObject);
         string[] rows = GenerateRows(levelIndex);
@@ -299,33 +300,33 @@ public sealed class LevelGenerator : MonoBehaviour
         int colorIndex = 0;
         Vector2Int[,] arrowDirections = CreateSolvableDirections(rows);
         for (int row = 0; row < height; row++)
-        for (int x = 0; x < width; x++)
-        {
-            if (rows[row][x] != '#') continue;
-            int y = height - 1 - row;
-            Vector3 position = origin + new Vector3(x * boardCellSize, y * boardCellSize, 0f);
-            GameObject cube = Instantiate(blockPrefab, position, Quaternion.identity, levelRoot);
-            cube.name = "Arrow Block " + x + " " + y;
-            if (cube.transform.parent != levelRoot) cube.transform.SetParent(levelRoot, true);
-            float cubeSize = boardCellSize - blockGap;
-            cube.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize * .75f);
-            cube.transform.position = position;
-            Renderer cubeRenderer = cube.GetComponent<Renderer>();
-            cubeRenderer.sharedMaterial = blockMaterials[colorIndex % blockMaterials.Length];
-            colorIndex++;
-            BrickBlock block = cube.GetComponent<BrickBlock>();
-            block.Initialize(new Vector2Int(x, y), arrowDirections[x, y], position, HandleBlockTap);
-            CreateArrowIcon(block.transform, arrowDirections[x, y], cubeSize);
-            block.PlaySpawnAnimation((x + y) * 0.018f);
-            blocks[x, y] = block;
-            remaining++;
-        }
+            for (int x = 0; x < width; x++)
+            {
+                if (rows[row][x] != '#') continue;
+                int y = height - 1 - row;
+                Vector3 position = origin + new Vector3(x * boardCellSize, y * boardCellSize, 0f);
+                GameObject cube = Instantiate(blockPrefab, position, Quaternion.identity, levelRoot);
+                cube.name = "Arrow Block " + x + " " + y;
+                if (cube.transform.parent != levelRoot) cube.transform.SetParent(levelRoot, true);
+                float cubeSize = boardCellSize - blockGap;
+                cube.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize * .75f);
+                cube.transform.position = position;
+                Renderer cubeRenderer = cube.GetComponent<Renderer>();
+                cubeRenderer.sharedMaterial = blockMaterials[colorIndex % blockMaterials.Length];
+                colorIndex++;
+                BrickBlock block = cube.GetComponent<BrickBlock>();
+                block.Initialize(new Vector2Int(x, y), arrowDirections[x, y], position, HandleBlockTap);
+                CreateArrowIcon(block.transform, arrowDirections[x, y], cubeSize);
+                block.PlaySpawnAnimation((x + y) * 0.018f);
+                blocks[x, y] = block;
+                remaining++;
+            }
 
         TimeLimitSeconds = useSolveTimer ? baseSolveTimeSeconds + remaining * extraSecondsPerBlock : 0f;
         TimeRemainingSeconds = TimeLimitSeconds;
     }
 
-    public void SetPuzzleVisible(bool visible)
+    public void SetPuzzleVisible(bool visible) // Shows or hides the puzzle
     {
         puzzleVisible = visible;
         if (levelRoot != null)
@@ -333,23 +334,23 @@ public sealed class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>Procedural boards grow from 4x4 to 16x16, becoming denser while remaining seed-reproducible.</summary>
-    private string[] GenerateRows(int index)
+    private string[] GenerateRows(int index) // Generates the level grid
     {
         const int maxGridGrowthLevel = 2000;
-        int gridGrowthIndex = Mathf.Min(index, maxGridGrowthLevel - 1);
+        int gridGrowthIndex = Mathf.Clamp(index, 0, maxGridGrowthLevel - 1);
         int size = Mathf.Min(16, 4 + Mathf.FloorToInt(Mathf.Sqrt(gridGrowthIndex / 25f)));
-        float progress = 1f - Mathf.Exp(-index / 360f);
+        float progress = 1f - Mathf.Exp(-gridGrowthIndex / 360f);
         float density = Mathf.Lerp(.58f, .96f, progress);
         System.Random random = new System.Random(unchecked(49157 + index * 7919));
         bool[,] occupied = new bool[size, size];
 
         for (int y = 0; y < size; y++)
-        for (int x = 0; x < size; x++)
-        {
-            bool corner = (x == 0 || x == size - 1) && (y == 0 || y == size - 1);
-            bool keepCorner = !corner || random.NextDouble() > Mathf.Lerp(.5f, .12f, progress);
-            occupied[x, y] = keepCorner && random.NextDouble() < density;
-        }
+            for (int x = 0; x < size; x++)
+            {
+                bool corner = (x == 0 || x == size - 1) && (y == 0 || y == size - 1);
+                bool keepCorner = !corner || random.NextDouble() > Mathf.Lerp(.5f, .12f, progress);
+                occupied[x, y] = keepCorner && random.NextDouble() < density;
+            }
         for (int y = 0; y < size; y++)
         {
             bool any = false; for (int x = 0; x < size; x++) any |= occupied[x, y];
@@ -372,7 +373,7 @@ public sealed class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>Assigns arrows using a valid peel order, keeping generated layouts solvable.</summary>
-    private Vector2Int[,] CreateSolvableDirections(string[] rows)
+    private Vector2Int[,] CreateSolvableDirections(string[] rows) // Assigns solvable arrow directions
     {
         int width = rows[0].Length, height = rows.Length;
         bool[,] alive = new bool[width, height];
@@ -424,7 +425,7 @@ public sealed class LevelGenerator : MonoBehaviour
         return result;
     }
 
-    private void CreateArrowIcon(Transform block, Vector2Int direction, float size)
+    private void CreateArrowIcon(Transform block, Vector2Int direction, float size) // Creates the block arrow visual
     {
         GameObject icon = new GameObject("Arrow Icon");
         icon.transform.SetParent(block, false);
@@ -446,7 +447,7 @@ public sealed class LevelGenerator : MonoBehaviour
         head.GetComponent<MeshRenderer>().sharedMaterial = arrowMaterial;
     }
 
-    private Mesh CreateArrowHeadMesh(float size)
+    private Mesh CreateArrowHeadMesh(float size) // Creates the arrowhead mesh
     {
         float z = -size * .018f;
         Mesh mesh = new Mesh { name = "Arrow Head Mesh" };
@@ -456,7 +457,7 @@ public sealed class LevelGenerator : MonoBehaviour
         return mesh;
     }
 
-    private void TryRemove(BrickBlock block)
+    private void TryRemove(BrickBlock block) // Removes a block when its exit path is clear
     {
         Vector2Int cell = block.Cell;
         if (blocks[cell.x, cell.y] != block) return;
@@ -494,14 +495,14 @@ public sealed class LevelGenerator : MonoBehaviour
             });
     }
 
-    private void NotifyLevelFailed()
+    private void NotifyLevelFailed() // Notifies listeners once when the level fails
     {
         if (failureNotified) return;
         failureNotified = true;
         LevelFailed?.Invoke(CurrentLevel);
     }
 
-    private Material NewMaterial(Color color, bool unlit)
+    private Material NewMaterial(Color color, bool unlit) // Creates a block or arrow material
     {
         Material template = unlit ? unlitMaterialTemplate : litMaterialTemplate;
         if (template != null) return new Material(template) { color = color };
@@ -512,7 +513,7 @@ public sealed class LevelGenerator : MonoBehaviour
         return new Material(shader) { color = color };
     }
 
-    private void OnDestroy()
+    private void OnDestroy() // Releases runtime-created materials
     {
         if (arrowMaterial != null) Destroy(arrowMaterial);
         if (blockMaterials != null) foreach (Material material in blockMaterials) if (material != null) Destroy(material);

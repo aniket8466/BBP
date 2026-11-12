@@ -37,6 +37,7 @@ public class MainMenu : MonoBehaviour
     [Header("Menu Settings")]
     [SerializeField] private Toggle coinsToggle;
     [SerializeField] private Toggle hintsToggle;
+    [SerializeField] private Button privacyPolicyBtn;
 
     [Header("Audio Settings")]
     [SerializeField] private Toggle bgmToggle;
@@ -72,19 +73,31 @@ public class MainMenu : MonoBehaviour
         ButtonClickSfx.Attach(hintPack1Button);
         ButtonClickSfx.Attach(hintPack5Button);
         ButtonClickSfx.Attach(hintPack10Button);
-        AddListener(shopButton, OpenShop); AddListener(coinButton, OpenCoins); AddListener(settingsButton, OpenSettings);
-        AddListener(shopClose, CloseShop); AddListener(settingsClose, CloseSettings);
+        AddListener(shopButton, OpenShop);
+        AddListener(coinButton, OpenCoins);
+        AddListener(settingsButton, OpenSettings);
+        AddListener(shopClose, CloseShop);
+        AddListener(settingsClose, CloseSettings);
         AddListener(exitButton, QuitApplication);
-        AddListener(coinPack10Button, BuyCoinPack10); AddListener(coinPack100Button, BuyCoinPack100); AddListener(coinPack200Button, BuyCoinPack200);
-        AddListener(hintPack1Button, BuyHintPack1); AddListener(hintPack5Button, BuyHintPack5); AddListener(hintPack10Button, BuyHintPack10);
+        AddListener(coinPack10Button, BuyCoinPack10);
+        AddListener(coinPack100Button, BuyCoinPack100);
+        AddListener(coinPack200Button, BuyCoinPack200);
+        AddListener(hintPack1Button, BuyHintPack1);
+        AddListener(hintPack5Button, BuyHintPack5);
+        AddListener(hintPack10Button, BuyHintPack10);
+        AddListener(privacyPolicyBtn, () => { Application.OpenURL("https://sites.google.com/view/funcratestudio/home"); });
         hintsToggle.SetIsOnWithoutNotify(GameManager.HintButtonEnabled);
         hintsToggle.onValueChanged.AddListener(GameManager.SetHintButtonEnabled);
         hintsToggle.onValueChanged.Invoke(hintsToggle.isOn);
         RefreshCoinBalance();
-        bgmToggle.SetIsOnWithoutNotify(audioManager.IsBGMEnabled()); bgmToggle.onValueChanged.AddListener(audioManager.SetBGMEnabled);
-        sfxToggle.SetIsOnWithoutNotify(audioManager.IsSFXEnabled()); sfxToggle.onValueChanged.AddListener(audioManager.SetSFXEnabled);
-        volumeSlider.SetValueWithoutNotify(audioManager.GetVolume() * 100f); volumeSlider.onValueChanged.AddListener(SetVolumePercent);
-        sfxVolumeSlider.SetValueWithoutNotify(audioManager.GetSFXVolume() * 100f); sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumePercent);
+        bgmToggle.SetIsOnWithoutNotify(audioManager.IsBGMEnabled());
+        bgmToggle.onValueChanged.AddListener(audioManager.SetBGMEnabled);
+        sfxToggle.SetIsOnWithoutNotify(audioManager.IsSFXEnabled());
+        sfxToggle.onValueChanged.AddListener(audioManager.SetSFXEnabled);
+        volumeSlider.SetValueWithoutNotify(audioManager.GetVolume() * 50f);
+        volumeSlider.onValueChanged.AddListener(SetVolumePercent);
+        sfxVolumeSlider.SetValueWithoutNotify(audioManager.GetSFXVolume() * 50f);
+        sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumePercent);
 
         if (UIAnimations.Instance != null) { UIAnimations.Instance.PlayAnimation("Intro", () => { menuAnimator.enabled = true; }); }
     }
